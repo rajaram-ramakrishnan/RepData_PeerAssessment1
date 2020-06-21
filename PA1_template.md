@@ -26,7 +26,8 @@ The dataset is stored in a comma-separated-value (CSV) file and there are a tota
 ## Loading and preprocessing the data
 unzip the data from url and load the data in to data.table
 
-``` {r data load}
+
+```r
 library("data.table")
 fileurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
 download.file(fileurl, destfile = "activitydata.zip")
@@ -40,32 +41,66 @@ activity <- fread(input ="data/activity.csv")
 
    Calculate the total number of steps taken per day
 
-```{r mean total steps}
+
+```r
 TotalSteps <- activity[, lapply(.SD, sum),.SDcols="steps",by=date]
 head(TotalSteps,15)
 ```
 
+```
+##           date steps
+##  1: 2012-10-01    NA
+##  2: 2012-10-02   126
+##  3: 2012-10-03 11352
+##  4: 2012-10-04 12116
+##  5: 2012-10-05 13294
+##  6: 2012-10-06 15420
+##  7: 2012-10-07 11015
+##  8: 2012-10-08    NA
+##  9: 2012-10-09 12811
+## 10: 2012-10-10  9900
+## 11: 2012-10-11 10304
+## 12: 2012-10-12 17382
+## 13: 2012-10-13 12426
+## 14: 2012-10-14 15098
+## 15: 2012-10-15 10139
+```
+
    Make a histogram of the total number of steps taken each day
    
-```{r histogram of steps}
+
+```r
 library(ggplot2)
 ggplot(TotalSteps,aes(x=steps))+
   geom_histogram(binwidth=2000, fill="#282649")+
   labs(title ="Total  Number of steps per day", x="Steps", y="Frequency")
 ```
 
+```
+## Warning: Removed 8 rows containing non-finite values (stat_bin).
+```
+
+![](PA1_template_files/figure-html/histogram of steps-1.png)<!-- -->
+
    Calculate and report the mean and median of the total number of steps taken per day
    
-```{r mean and median of total steps}
+
+```r
 TotalSteps[, .(Mean_total_steps = mean(steps,na.rm=TRUE),
                Median_total_steps = median(steps,na.rm=TRUE))]
+```
+
+```
+##    Mean_total_steps Median_total_steps
+## 1:         10766.19              10765
 ```
 
 ## What is the average daily activity pattern?
 
    Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
    
-```{r interval plot}
+
+```r
 IntervalActivity <- activity[, lapply(.SD,mean,na.rm=TRUE),.SDcols="steps", by=interval]
 
 ggplot(IntervalActivity,aes(x=interval,y=steps))+
@@ -73,10 +108,18 @@ ggplot(IntervalActivity,aes(x=interval,y=steps))+
   labs(title="Avergae Steps taken daily",x="Interval",y="Average Steps")
 ```
 
+![](PA1_template_files/figure-html/interval plot-1.png)<!-- -->
+
    Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
    
-``` {r }
+
+```r
 IntervalActivity[steps==max(steps), .(interval)]
+```
+
+```
+##    interval
+## 1:      835
 ```
 
 ## Imputing missing values
@@ -84,14 +127,34 @@ Note that there are a number of days/intervals where there are missing values (c
 
   Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
   
-```{r missing values in dataset}
+
+```r
 activity[is.na(steps), .N]
+```
+
+```
+## [1] 2304
 ```
 
   Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
   
-```{r fill NAs}
+
+```r
 library(zoo)
+```
+
+```
+## 
+## Attaching package: 'zoo'
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     as.Date, as.Date.numeric
+```
+
+```r
 activitynew <- copy(activity)
 activitynew[, steps := as.double(steps)]
 activitynew[, steps := lapply(.SD, na.aggregate, median), by = interval,.SDcols = "steps"]
@@ -99,20 +162,32 @@ activitynew[, steps := lapply(.SD, na.aggregate, median), by = interval,.SDcols 
 
   Create a new dataset that is equal to the original dataset but with the missing data filled in.
   
-```{r create a new dataset}
+
+```r
 fwrite(activitynew,file="data/activitynew.csv")
 ```
 
    Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
    
-```{r }
+
+```r
 TotalStepsnew <- activitynew[, lapply(.SD, sum),.SDcols="steps",by=date]
 TotalStepsnew[, .(Mean_total_steps = mean(steps,na.rm=TRUE),
                Median_total_steps = median(steps,na.rm=TRUE))]
+```
+
+```
+##    Mean_total_steps Median_total_steps
+## 1:         10766.19           10766.19
+```
+
+```r
 ggplot(TotalStepsnew,aes(x=steps))+
   geom_histogram(binwidth=2000, fill="#282649")+
   labs(title ="Total  Number of steps per day", x="Steps", y="Frequency")
-```               
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 Type|Mean_total_steps|Median_total_steps
 
