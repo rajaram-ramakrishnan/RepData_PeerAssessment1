@@ -140,24 +140,9 @@ activity[is.na(steps), .N]
   
 
 ```r
-library(zoo)
-```
-
-```
-## 
-## Attaching package: 'zoo'
-```
-
-```
-## The following objects are masked from 'package:base':
-## 
-##     as.Date, as.Date.numeric
-```
-
-```r
 activitynew <- copy(activity)
 activitynew[, steps := as.double(steps)]
-activitynew[, steps := lapply(.SD, na.aggregate, median), by = interval,.SDcols = "steps"]
+activitynew[, steps := lapply(.SD, function(x) nafill(x,type="const",fill=mean(x, na.rm=TRUE))), by = interval,.SDcols = "steps"]
 ```
 
   Create a new dataset that is equal to the original dataset but with the missing data filled in.
@@ -198,3 +183,95 @@ Second Part|10766.19|10766.19
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+   Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+   
+
+```r
+library(lubridate)
+```
+
+```
+## 
+## Attaching package: 'lubridate'
+```
+
+```
+## The following objects are masked from 'package:data.table':
+## 
+##     hour, isoweek, mday, minute, month, quarter, second, wday, week,
+##     yday, year
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     date, intersect, setdiff, union
+```
+
+```r
+library(chron)
+```
+
+```
+## NOTE: The default cutoff when expanding a 2-digit year
+## to a 4-digit year will change from 30 to 69 by Aug 2020
+## (as for Date and POSIXct in base R.)
+```
+
+```
+## 
+## Attaching package: 'chron'
+```
+
+```
+## The following objects are masked from 'package:lubridate':
+## 
+##     days, hours, minutes, seconds, years
+```
+
+```r
+activity[, date := ymd(date)]
+activity[, weekend := is.weekend(date)]
+activity[, weekend := factor(weekend, levels=c("FALSE","TRUE"), labels=c("weekday","weekend"))]
+head(activity[date==as.Date('2012-10-01')])
+```
+
+```
+##    steps       date interval weekend
+## 1:    NA 2012-10-01        0 weekday
+## 2:    NA 2012-10-01        5 weekday
+## 3:    NA 2012-10-01       10 weekday
+## 4:    NA 2012-10-01       15 weekday
+## 5:    NA 2012-10-01       20 weekday
+## 6:    NA 2012-10-01       25 weekday
+```
+
+```r
+head(activity[date==as.Date('2012-10-06')])
+```
+
+```
+##    steps       date interval weekend
+## 1:     0 2012-10-06        0 weekend
+## 2:     0 2012-10-06        5 weekend
+## 3:     0 2012-10-06       10 weekend
+## 4:     0 2012-10-06       15 weekend
+## 5:     0 2012-10-06       20 weekend
+## 6:     0 2012-10-06       25 weekend
+```
+
+   Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+   
+
+```r
+activity[, steps := as.double(steps)]
+activity[, steps := lapply(.SD, function(x) nafill(x,type="const",fill=mean(x, na.rm=TRUE))), by = interval,.SDcols = "steps"]
+IntervalActivity <- activity[, lapply(.SD, mean, na.rm = TRUE),.SDcols="steps", by= .(interval,weekend)]
+ggplot(IntervalActivity,aes(x=interval, y = steps, color=weekend)) +
+  geom_line() +
+  labs(title = "Average Daily steps by weekday/weekend", x="Interval", y="Number of Steps")+
+  facet_wrap(~ weekend, nrow=2, ncol=1)
+```
+
+![](PA1_template_files/figure-html/plot weekday/end-1.png)<!-- -->

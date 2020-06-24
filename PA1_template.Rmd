@@ -91,10 +91,9 @@ activity[is.na(steps), .N]
   Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
   
 ```{r fill NAs}
-library(zoo)
 activitynew <- copy(activity)
 activitynew[, steps := as.double(steps)]
-activitynew[, steps := lapply(.SD, na.aggregate, median), by = interval,.SDcols = "steps"]
+activitynew[, steps := lapply(.SD, function(x) nafill(x,type="const",fill=mean(x, na.rm=TRUE))), by = interval,.SDcols = "steps"]
 ```
 
   Create a new dataset that is equal to the original dataset but with the missing data filled in.
@@ -123,3 +122,27 @@ Second Part|10766.19|10766.19
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+   Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+   
+``` {r factor for weekday/end}
+library(lubridate)
+library(chron)
+activity[, date := ymd(date)]
+activity[, weekend := is.weekend(date)]
+activity[, weekend := factor(weekend, levels=c("FALSE","TRUE"), labels=c("weekday","weekend"))]
+head(activity[date==as.Date('2012-10-01')])
+head(activity[date==as.Date('2012-10-06')])
+```
+
+   Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+   
+```{r plot weekday/end}
+activity[, steps := as.double(steps)]
+activity[, steps := lapply(.SD, function(x) nafill(x,type="const",fill=mean(x, na.rm=TRUE))), by = interval,.SDcols = "steps"]
+IntervalActivity <- activity[, lapply(.SD, mean, na.rm = TRUE),.SDcols="steps", by= .(interval,weekend)]
+ggplot(IntervalActivity,aes(x=interval, y = steps, color=weekend)) +
+  geom_line() +
+  labs(title = "Average Daily steps by weekday/weekend", x="Interval", y="Number of Steps")+
+  facet_wrap(~ weekend, nrow=2, ncol=1)
+```
